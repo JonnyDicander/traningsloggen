@@ -7,6 +7,7 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -41,9 +42,15 @@ class MainActivity : ComponentActivity() {
 fun WorkoutScreen(viewModel: WorkoutViewModel) {
     val state = viewModel.uiState
 
-    // Beräkna statistik (t.ex. "2 av 5 klara")
     val totalCount = state.items.size
     val completedCount = state.items.count { it.isCompleted }
+
+    val filterOptions = listOf("Alla", "Bröst", "Ben", "Rygg", "Cardio")
+    val filteredItems = if (state.selectedCategoryFilter == null) {
+        state.items
+    } else {
+        state.items.filter { it.category == state.selectedCategoryFilter }
+    }
 
     Scaffold(
         topBar = {
@@ -61,7 +68,7 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // Statistikrad
             Card(
@@ -77,7 +84,7 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                 )
             }
 
-            // Inmatningsdel: Textfält & Kategori-knappar
+            // Textfält för ny eller redigerad övning
             OutlinedTextField(
                 value = state.inputTitle,
                 onValueChange = { viewModel.updateInputTitle(it) },
@@ -86,13 +93,17 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                 singleLine = true
             )
 
-            // Enkel rad för att välja kategori
-            Row(
+            // Välj kategori för övningen
+            Text(
+                text = "Kategori för övningen:",
+                style = MaterialTheme.typography.labelLarge
+            )
+            LazyRow(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 val categories = listOf("Bröst", "Ben", "Rygg", "Cardio")
-                categories.forEach { category ->
+                items(categories) { category ->
                     FilterChip(
                         selected = state.inputCategory == category,
                         onClick = { viewModel.updateInputCategory(category) },
@@ -109,18 +120,49 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                 Text(if (state.editingItem == null) "Lägg till övning" else "Spara ändring")
             }
 
-            Divider()
+            HorizontalDivider()
 
-            // Lista eller Tomt läge-hjälptext
-            if (state.items.isEmpty()) {
+            // Filterrad för listan
+            Text(
+                text = "Visa kategori:",
+                style = MaterialTheme.typography.labelLarge
+            )
+            LazyRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(filterOptions) { option ->
+                    val isSelected = if (option == "Alla") {
+                        state.selectedCategoryFilter == null
+                    } else {
+                        state.selectedCategoryFilter == option
+                    }
+
+                    FilterChip(
+                        selected = isSelected,
+                        onClick = {
+                            viewModel.updateCategoryFilter(if (option == "Alla") null else option)
+                        },
+                        label = { Text(option) }
+                    )
+                }
+            }
+
+            // Lista eller tomt läge
+            if (filteredItems.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
+                    val emptyMessage = if (state.items.isEmpty()) {
+                        "Inga övningar tillagda ännu.\nFyll i ovan och klicka på knappen för att komma igång!"
+                    } else {
+                        "Inga övningar i kategorin ${state.selectedCategoryFilter}."
+                    }
                     Text(
-                        text = "Inga övningar tillagda ännu.\nFyll i ovan och klicka på knappen för att komma igång!",
+                        text = emptyMessage,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -132,7 +174,7 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                         .weight(1f),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(state.items, key = { it.id }) { item ->
+                    items(filteredItems, key = { it.id }) { item ->
                         WorkoutRow(
                             item = item,
                             onToggle = { viewModel.toggleCompletion(item.id) },

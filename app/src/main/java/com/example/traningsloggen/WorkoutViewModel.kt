@@ -9,6 +9,7 @@ data class WorkoutUiState(
     val items: List<WorkoutItem> = emptyList(),
     val inputTitle: String = "",
     val inputCategory: String = "Bröst",
+    val selectedCategoryFilter: String? = null,
     val editingItem: WorkoutItem? = null
 )
 
@@ -22,6 +23,10 @@ class WorkoutViewModel : ViewModel() {
 
     fun updateInputCategory(category: String) {
         uiState = uiState.copy(inputCategory = category)
+    }
+
+    fun updateCategoryFilter(category: String?) {
+        uiState = uiState.copy(selectedCategoryFilter = category)
     }
 
     fun saveWorkout() {
