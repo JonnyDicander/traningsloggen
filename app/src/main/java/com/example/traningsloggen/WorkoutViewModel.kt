@@ -38,8 +38,9 @@ class WorkoutViewModel : ViewModel() {
                 inputTitle = ""
             )
         } else {
+            val editing = uiState.editingItem ?: return
             val updatedList = uiState.items.map { item ->
-                if (item.id == uiState.editingItem.id) {
+                if (item.id == editing.id) {
                     item.copy(title = uiState.inputTitle.trim(), category = uiState.inputCategory)
                 } else {
                     item
@@ -72,7 +73,7 @@ class WorkoutViewModel : ViewModel() {
         )
     }
 
-    fn deleteItem(id: String) {
+    fun deleteItem(id: String) {
         val updatedList = uiState.items.filter { it.id != id }
         val editing = if (uiState.editingItem?.id == id) null else uiState.editingItem
         val title = if (uiState.editingItem?.id == id) "" else uiState.inputTitle

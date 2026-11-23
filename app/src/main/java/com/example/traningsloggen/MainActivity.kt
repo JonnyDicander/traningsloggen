@@ -3,27 +3,143 @@ package com.example.traningsloggen
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.activity.viewModels
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
 import com.example.traningsloggen.ui.theme.TraningsloggenTheme
 
 class MainActivity : ComponentActivity() {
+    private val viewModel: WorkoutViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
             TraningsloggenTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    WorkoutScreen(viewModel = viewModel)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WorkoutScreen(viewModel: WorkoutViewModel) {
+    val state = viewModel.uiState
+
+    // Beräkna statistik (t.ex. "2 av 5 klara")
+    val totalCount = state.items.size
+    val completedCount = state.items.count { it.isCompleted }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Träningsloggen") },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Statistikrad
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Statistik: $completedCount av $totalCount övningar klara",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+
+            // Inmatningsdel: Textfält & Kategori-knappar
+            OutlinedTextField(
+                value = state.inputTitle,
+                onValueChange = { viewModel.updateInputTitle(it) },
+                label = { Text("Skriv in övning (t.ex. Bänkpress)") },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
+            )
+
+            // Enkel rad för att välja kategori
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val categories = listOf("Bröst", "Ben", "Rygg", "Cardio")
+                categories.forEach { category ->
+                    FilterChip(
+                        selected = state.inputCategory == category,
+                        onClick = { viewModel.updateInputCategory(category) },
+                        label = { Text(category) }
                     )
+                }
+            }
+
+            // Spara / Redigera-knapp
+            Button(
+                onClick = { viewModel.saveWorkout() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (state.editingItem == null) "Lägg till övning" else "Spara ändring")
+            }
+
+            Divider()
+
+            // Lista eller Tomt läge-hjälptext
+            if (state.items.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Inga övningar tillagda ännu.\nFyll i ovan och klicka på knappen för att komma igång!",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(state.items, key = { it.id }) { item ->
+                        WorkoutRow(
+                            item = item,
+                            onToggle = { viewModel.toggleCompletion(item.id) },
+                            onEdit = { viewModel.startEdit(item) },
+                            onDelete = { viewModel.deleteItem(item.id) }
+                        )
+                    }
                 }
             }
         }
@@ -31,17 +147,51 @@ class MainActivity : ComponentActivity() {
 }
 
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+fun WorkoutRow(
+    item: WorkoutItem,
+    onToggle: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onToggle() },
+        colors = CardDefaults.cardColors(
+            containerColor = if (item.isCompleted)
+                MaterialTheme.colorScheme.surfaceVariant
+            else
+                MaterialTheme.colorScheme.surface
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Kategori: ${item.category} | ${if (item.isCompleted) "Klar ✓" else "Ej klar"}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    TraningsloggenTheme {
-        Greeting("Android")
+            Row {
+                IconButton(onClick = onEdit) {
+                    Icon(Icons.Default.Edit, contentDescription = "Redigera")
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(Icons.Default.Delete, contentDescription = "Ta bort")
+                }
+            }
+        }
     }
 }
