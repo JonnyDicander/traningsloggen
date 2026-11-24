@@ -4,13 +4,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-
 data class WorkoutUiState(
     val items: List<WorkoutItem> = emptyList(),
     val inputTitle: String = "",
     val inputCategory: String = "Bröst",
     val selectedCategoryFilter: String? = null,
-    val editingItem: WorkoutItem? = null
+    val editingItem: WorkoutItem? = null,
+    val lastDeletedItem: WorkoutItem? = null
 )
 
 class WorkoutViewModel : ViewModel() {
@@ -79,6 +79,7 @@ class WorkoutViewModel : ViewModel() {
     }
 
     fun deleteItem(id: String) {
+        val removedItem = uiState.items.find { it.id == id }
         val updatedList = uiState.items.filter { it.id != id }
         val editing = if (uiState.editingItem?.id == id) null else uiState.editingItem
         val title = if (uiState.editingItem?.id == id) "" else uiState.inputTitle
@@ -86,7 +87,16 @@ class WorkoutViewModel : ViewModel() {
         uiState = uiState.copy(
             items = updatedList,
             editingItem = editing,
-            inputTitle = title
+            inputTitle = title,
+            lastDeletedItem = removedItem
+        )
+    }
+
+    fun undoDelete() {
+        val itemToRestore = uiState.lastDeletedItem ?: return
+        uiState = uiState.copy(
+            items = uiState.items + itemToRestore,
+            lastDeletedItem = null
         )
     }
 }

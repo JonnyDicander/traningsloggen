@@ -37,10 +37,21 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+fun categoryEmoji(category: String): String {
+    return when (category) {
+        "Bröst" -> "🏋️"
+        "Ben" -> "🦵"
+        "Rygg" -> "💪"
+        "Cardio" -> "🏃"
+        else -> "🔥"
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutScreen(viewModel: WorkoutViewModel) {
     val state = viewModel.uiState
+    val snackbarHostState = remember { SnackbarHostState() }
 
     val totalCount = state.items.size
     val completedCount = state.items.count { it.isCompleted }
@@ -52,10 +63,25 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
         state.items.filter { it.category == state.selectedCategoryFilter }
     }
 
+    LaunchedEffect(state.lastDeletedItem) {
+        val deleted = state.lastDeletedItem
+        if (deleted != null) {
+            val result = snackbarHostState.showSnackbar(
+                message = "Tog bort ${categoryEmoji(deleted.category)} \"${deleted.title}\"",
+                actionLabel = "Ångra",
+                duration = SnackbarDuration.Short
+            )
+            if (result == SnackbarResult.ActionPerformed) {
+                viewModel.undoDelete()
+            }
+        }
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Träningsloggen") },
+                title = { Text("🏋️ Träningsloggen") },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.primaryContainer,
                     titleContentColor = MaterialTheme.colorScheme.onPrimaryContainer
@@ -78,7 +104,7 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Statistik: $completedCount av $totalCount övningar klara",
+                    text = "📊 Statistik: $completedCount av $totalCount övningar klara",
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.bodyLarge
                 )
@@ -107,7 +133,7 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                     FilterChip(
                         selected = state.inputCategory == category,
                         onClick = { viewModel.updateInputCategory(category) },
-                        label = { Text(category) }
+                        label = { Text("${categoryEmoji(category)} $category") }
                     )
                 }
             }
@@ -117,7 +143,12 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                 onClick = { viewModel.saveWorkout() },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (state.editingItem == null) "Lägg till övning" else "Spara ändring")
+                val buttonLabel = if (state.editingItem == null) {
+                    "➕ Lägg till övning"
+                } else {
+                    "💾 Spara ändring"
+                }
+                Text(buttonLabel)
             }
 
             HorizontalDivider()
@@ -138,12 +169,18 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                         state.selectedCategoryFilter == option
                     }
 
+                    val labelText = if (option == "Alla") {
+                        "Alla"
+                    } else {
+                        "${categoryEmoji(option)} $option"
+                    }
+
                     FilterChip(
                         selected = isSelected,
                         onClick = {
                             viewModel.updateCategoryFilter(if (option == "Alla") null else option)
                         },
-                        label = { Text(option) }
+                        label = { Text(labelText) }
                     )
                 }
             }
@@ -215,12 +252,13 @@ fun WorkoutRow(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.title,
+                    text = "${categoryEmoji(item.category)} ${item.title}",
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                val statusText = if (item.isCompleted) "Klar ✅" else "Ej klar"
                 Text(
-                    text = "Kategori: ${item.category} | ${if (item.isCompleted) "Klar ✓" else "Ej klar"}",
+                    text = "Kategori: ${categoryEmoji(item.category)} ${item.category} | $statusText",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
