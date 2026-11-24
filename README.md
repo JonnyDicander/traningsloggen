@@ -14,3 +14,13 @@ och kod som gör att man kan lägga till, ändra, bocka av och ta bort övningar
 
 4. **La till filter på kategorier** – Gjorde så att man kan klicka på t.ex. *Bröst* eller *Alla* 
 för att bara se övningar i just den kategorin.
+
+
+## Felsökning
+När jag byggde appen fick jag några felmeddelanden i koden, bland annat när jag la till nya
+funktioner och filter. Jag löste det genom att kolla felmeddelandena, rätta saknade funktioner
+och ändra hur värdet hämtades så att koden gick att bygga igen.
+
+## Hjälpmedel
+Jag har använt Android Studio och AI som stöd när jag byggde appen och felsökte problem.
+Det hjälpte mig att hitta var felet satt och komma vidare när jag fastnade.
