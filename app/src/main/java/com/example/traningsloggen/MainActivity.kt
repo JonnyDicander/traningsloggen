@@ -126,14 +126,21 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
             )
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 val categories = listOf("Bröst", "Ben", "Rygg", "Cardio")
                 items(categories) { category ->
                     FilterChip(
                         selected = state.inputCategory == category,
                         onClick = { viewModel.updateInputCategory(category) },
-                        label = { Text("${categoryEmoji(category)} $category") }
+                        label = {
+                            Text(
+                                text = "${categoryEmoji(category)} $category",
+                                maxLines = 1,
+                                softWrap = false,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
                     )
                 }
             }
@@ -158,11 +165,12 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                 text = "Visa kategori:",
                 style = MaterialTheme.typography.labelLarge
             )
-            LazyRow(
+            FlowRow(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                items(filterOptions) { option ->
+                filterOptions.forEach { option ->
                     val isSelected = if (option == "Alla") {
                         state.selectedCategoryFilter == null
                     } else {
@@ -180,7 +188,14 @@ fun WorkoutScreen(viewModel: WorkoutViewModel) {
                         onClick = {
                             viewModel.updateCategoryFilter(if (option == "Alla") null else option)
                         },
-                        label = { Text(labelText) }
+                        label = {
+                            Text(
+                                text = labelText,
+                                maxLines = 1,
+                                softWrap = false,
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
                     )
                 }
             }
